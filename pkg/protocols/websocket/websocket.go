@@ -140,7 +140,9 @@ func (request *Request) GetID() string {
 
 // ExecuteWithResults executes the protocol requests and returns results instead of writing them.
 func (request *Request) ExecuteWithResults(input *contextargs.Context, dynamicValues, previous output.InternalEvent, callback protocols.OutputEventCallback) error {
+
 	hostname, err := getAddress(input.MetaInput.Input)
+	fmt.Println(hostname)
 	if err != nil {
 		return err
 	}
@@ -234,11 +236,14 @@ func (request *Request) executeRequestWithPayloads(target *contextargs.Context, 
 		return errors.Wrap(err, "could not connect to server")
 	}
 	defer conn.Close()
+	fmt.Println("response builder")
 
 	responseBuilder := &strings.Builder{}
 	if readBuffer != nil {
 		_, _ = io.Copy(responseBuilder, readBuffer) // Copy initial response
 	}
+
+	fmt.Println("response builder end", responseBuilder.String())
 
 	events, requestOutput, err := request.readWriteInputWebsocket(conn, payloadValues, input, responseBuilder)
 	if err != nil {
@@ -297,6 +302,7 @@ func (request *Request) readWriteInputWebsocket(conn net.Conn, payloadValues map
 	requestOptions := request.options
 	for _, req := range request.Inputs {
 		reqBuilder.Grow(len(req.Data))
+		fmt.Println("reqbuilder", reqBuilder.String())
 
 		finalData, dataErr := expressions.EvaluateByte([]byte(req.Data), payloadValues)
 		if dataErr != nil {
@@ -304,9 +310,11 @@ func (request *Request) readWriteInputWebsocket(conn net.Conn, payloadValues map
 			requestOptions.Progress.IncrementFailedRequestsBy(1)
 			return nil, "", errors.Wrap(dataErr, evaluateTemplateExpressionErrorMessage)
 		}
+		fmt.Println("finalData", string(finalData))
 		reqBuilder.WriteString(string(finalData))
 
 		err = wsutil.WriteClientMessage(conn, ws.OpText, finalData)
+		fmt.Println("err", err)
 		if err != nil {
 			requestOptions.Output.Request(requestOptions.TemplateID, input, request.Type().String(), err)
 			requestOptions.Progress.IncrementFailedRequestsBy(1)
@@ -314,6 +322,7 @@ func (request *Request) readWriteInputWebsocket(conn net.Conn, payloadValues map
 		}
 
 		msg, opCode, err := wsutil.ReadServerData(conn)
+		fmt.Println("msg", msg, "opCode", opCode, "err", err)
 		if err != nil {
 			requestOptions.Output.Request(requestOptions.TemplateID, input, request.Type().String(), err)
 			requestOptions.Progress.IncrementFailedRequestsBy(1)
