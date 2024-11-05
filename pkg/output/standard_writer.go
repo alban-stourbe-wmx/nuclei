@@ -95,6 +95,14 @@ func WithStoreResponse(storeResponse bool, respDir string) WriterOptions {
 	}
 }
 
+// WithOmitTemplate sets the omit template option
+func WithOmitTemplate(omitTemplate bool) WriterOptions {
+	return func(s *StandardWriter) error {
+		s.omitTemplate = omitTemplate
+		return nil
+	}
+}
+
 // NewWriter creates a new output writer
 // if no writer is specified it writes to stdout
 func NewWriter(opts ...WriterOptions) (*StandardWriter, error) {

@@ -275,6 +275,11 @@ func NewStandardWriter(options *types.Options) (*StandardWriter, error) {
 
 // Write writes the event to file and/or screen.
 func (w *StandardWriter) Write(event *ResultEvent) error {
+	// Check if the omit template flag is set and if so, remove the template encoded from the result event
+	if w.omitTemplate {
+		event.TemplateEncoded = ""
+	}
+
 	// Enrich the result event with extra metadata on the template-path and url.
 	if event.TemplatePath != "" {
 		event.Template, event.TemplateURL = utils.TemplatePathURL(types.ToString(event.TemplatePath), types.ToString(event.TemplateID), event.TemplateVerifier)
@@ -489,8 +494,10 @@ func (w *StandardWriter) WriteFailure(wrappedEvent *InternalWrappedEvent) error 
 var maxTemplateFileSizeForEncoding = unitutils.Mega
 
 func (w *StandardWriter) encodeTemplate(templatePath string) string {
+	gologger.Debug().Msgf("Encoding template %s", templatePath)
 	data, err := os.ReadFile(templatePath)
 	if err == nil && !w.omitTemplate && len(data) <= maxTemplateFileSizeForEncoding && config.DefaultConfig.IsCustomTemplate(templatePath) {
+		gologger.Debug().Msgf("PQ tu encodes wallah %v", !w.omitTemplate)
 		return base64.StdEncoding.EncodeToString(data)
 	}
 	return ""
